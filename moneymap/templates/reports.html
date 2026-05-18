@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - MoneyMap</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="main-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>💰 MoneyMap</h2>
+            </div>
+            
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="{{ url_for('dashboard') }}">
+                        📊 Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('income') }}">
+                        💵 Income
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('expenses') }}">
+                        💸 Expenses
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('goals') }}">
+                        🎯 Savings Goals
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('reports') }}" class="active">
+                        📈 Reports
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('logout') }}">
+                        🚪 Logout
+                    </a>
+                </li>
+            </ul>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Financial Reports 📈</h1>
+                <p>Analyze your financial data and get AI insights</p>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Export Options -->
+            <div class="cards-grid mb-20">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Export Report</span>
+                        <div class="card-icon" style="background: var(--gradient-primary); color: white;">📄</div>
+                    </div>
+                    <p style="margin-bottom: 15px; font-size: 0.9rem;">Download comprehensive financial report as PDF</p>
+                    <a href="{{ url_for('export_pdf') }}" class="btn btn-primary">Export PDF</a>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">AI Analysis</span>
+                        <div class="card-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">🤖</div>
+                    </div>
+                    <p style="margin-bottom: 15px; font-size: 0.9rem;">Get AI-powered spending insights</p>
+                    <button onclick="loadAIAnalysis()" class="btn btn-warning">Analyze Now</button>
+                </div>
+            </div>
+            
+            <!-- Financial Summary -->
+            <div class="table-container mb-20">
+                <h3>Financial Summary</h3>
+                <div class="cards-grid" style="margin-top: 20px;">
+                    <div class="card">
+                        <div class="card-value" style="color: var(--success-color);">{{ "₹{:,.2f}".format(total_income) }}</div>
+                        <div class="card-subtext">Total Income</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-value" style="color: var(--danger-color);">{{ "₹{:,.2f}".format(total_expenses) }}</div>
+                        <div class="card-subtext">Total Expenses</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-value">{{ "₹{:,.2f}".format(total_income - total_expenses) }}</div>
+                        <div class="card-subtext">Net Balance</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Category Breakdown Chart -->
+            <div class="chart-container mb-20">
+                <div class="chart-header">
+                    <h3>Expense Category Breakdown</h3>
+                </div>
+                <canvas id="categoryChart" data-categories='{{ category_data|tojson }}' height="100"></canvas>
+            </div>
+            
+            <!-- AI Insights -->
+            <div class="table-container mb-20">
+                <h3>🤖 AI Spending Insights</h3>
+                <div id="aiInsights">
+                    <p style="color: var(--text-secondary);">Click "Analyze Now" to get AI-powered insights about your spending patterns.</p>
+                </div>
+            </div>
+            
+            <!-- Finance Chatbot -->
+            <div class="table-container">
+                <h3>💬 Ask Finance Bot</h3>
+                <p style="margin-bottom: 20px; color: var(--text-secondary);">
+                    Ask questions like "What is my total expense?" or "How much did I spend on food?"
+                </p>
+                
+                <div class="chatbot-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-message bot">
+                            Hello! I'm your finance assistant. Ask me anything about your finances!
+                        </div>
+                    </div>
+                    
+                    <form id="chatForm" class="chat-input-container">
+                        <input type="text" id="chatMessage" class="chat-input" 
+                               placeholder="Type your question..." required>
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        function loadAIAnalysis() {
+            const insightsDiv = document.getElementById('aiInsights');
+            insightsDiv.innerHTML = '<div class="spinner"></div><p>Analyzing your finances...</p>';
+            
+            fetch('/analyze_expenses')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let html = '<div class="alert alert-info">';
+                        
+                        if (data.trend_message) {
+                            html += `<p><strong>Trend:</strong> ${data.trend_message}</p>`;
+                        }
+                        
+                        if (data.highest_spending_category) {
+                            html += `<p><strong>Highest Spending:</strong> ${data.highest_spending_category.category} ` +
+                                    `(₹${data.highest_spending_category.amount.toLocaleString()})</p>`;
+                        }
+                        
+                        if (data.saving_analysis) {
+                            const savings = data.saving_analysis;
+                            html += `<p><strong>Savings Rate:</strong> ${savings.savings_rate.toFixed(1)}% ` +
+                                    `of income saved</p>`;
+                        }
+                        
+                        if (data.recommendations && data.recommendations.length > 0) {
+                            html += '<p><strong>Recommendations:</strong></p><ul>';
+                            data.recommendations.forEach(rec => {
+                                html += `<li>${rec}</li>`;
+                            });
+                            html += '</ul>';
+                        }
+                        
+                        html += '</div>';
+                        insightsDiv.innerHTML = html;
+                    } else {
+                        insightsDiv.innerHTML = '<div class="alert alert-warning">No data available for analysis yet.</div>';
+                    }
+                })
+                .catch(error => {
+                    insightsDiv.innerHTML = '<div class="alert alert-danger">Failed to load analysis. Please try again.</div>';
+                });
+        }
+    </script>
+</body>
+</html>

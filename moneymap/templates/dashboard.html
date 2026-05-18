@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - MoneyMap</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="main-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>💰 MoneyMap</h2>
+            </div>
+            
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="{{ url_for('dashboard') }}" class="active">
+                        📊 Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('income') }}">
+                        💵 Income
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('expenses') }}">
+                        💸 Expenses
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('goals') }}">
+                        🎯 Savings Goals
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('reports') }}">
+                        📈 Reports
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('logout') }}">
+                        🚪 Logout
+                    </a>
+                </li>
+            </ul>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Welcome back, {{ session.username }}! 👋</h1>
+                <p>Here's your financial overview</p>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Financial Cards -->
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Total Income</span>
+                        <div class="card-icon income">💵</div>
+                    </div>
+                    <div class="card-value">{{ "₹{:,.2f}".format(total_income) }}</div>
+                    <div class="card-subtext">All time earnings</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Total Expenses</span>
+                        <div class="card-icon expense">💸</div>
+                    </div>
+                    <div class="card-value">{{ "₹{:,.2f}".format(total_expenses) }}</div>
+                    <div class="card-subtext">All time spending</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Balance</span>
+                        <div class="card-icon balance">⚖️</div>
+                    </div>
+                    <div class="card-value">{{ "₹{:,.2f}".format(balance) }}</div>
+                    <div class="card-subtext">Remaining amount</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Monthly Spending</span>
+                        <div class="card-icon budget">📅</div>
+                    </div>
+                    <div class="card-value">{{ "₹{:,.2f}".format(monthly_expenses) }}</div>
+                    <div class="card-subtext">This month</div>
+                    {% if budget_limit > 0 %}
+                    <div class="card-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ (monthly_expenses / budget_limit * 100)|min(100) }}%"></div>
+                        </div>
+                        <div class="goal-percentage">Budget: {{ "₹{:,.2f}".format(budget_limit) }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Charts Row -->
+            <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3>Expense Categories</h3>
+                    </div>
+                    <canvas id="categoryChart" data-categories='{{ category_data|tojson }}' height="200"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3>Income vs Expenses</h3>
+                    </div>
+                    <canvas id="trendsChart" height="200"></canvas>
+                </div>
+            </div>
+            
+            <!-- Recent Transactions -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Recent Transactions</h3>
+                    <div class="d-flex">
+                        <a href="{{ url_for('income') }}" class="btn btn-success btn-sm">+ Add Income</a>
+                        <a href="{{ url_for('expenses') }}" class="btn btn-danger btn-sm">+ Add Expense</a>
+                    </div>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in recent_transactions %}
+                        <tr>
+                            <td>
+                                <span class="badge badge-{{ 'income' if transaction[0] == 'income' else 'expense' }}">
+                                    {{ transaction[0]|title }}
+                                </span>
+                            </td>
+                            <td>{{ transaction[1] }}</td>
+                            <td>
+                                {% if transaction[3] %}
+                                <span class="badge badge-category">{{ transaction[3] }}</span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ "₹{:,.2f}".format(transaction[2]) }}</strong>
+                            </td>
+                            <td>{{ transaction[4] }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">No transactions yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Savings Goals Preview -->
+            {% if savings_goals %}
+            <div class="mt-20">
+                <h3>Savings Goals Progress</h3>
+                <div class="cards-grid" style="margin-top: 20px;">
+                    {% for goal in savings_goals[:3] %}
+                    <div class="goal-card">
+                        <div class="goal-header">
+                            <span class="goal-name">{{ goal[0] }}</span>
+                            <span class="goal-amount">{{ "₹{:,.2f}".format(goal[2]) }} / {{ "₹{:,.2f}".format(goal[1]) }}</span>
+                        </div>
+                        <div class="goal-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ (goal[2] / goal[1] * 100)|min(100) }}%"></div>
+                            </div>
+                            <div class="goal-percentage">{{ ((goal[2] / goal[1] * 100)|min(100))|round(1) }}%</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <a href="{{ url_for('goals') }}" class="btn btn-primary">View All Goals</a>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

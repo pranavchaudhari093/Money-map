@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savings Goals - MoneyMap</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="main-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>💰 MoneyMap</h2>
+            </div>
+            
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="{{ url_for('dashboard') }}">
+                        📊 Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('income') }}">
+                        💵 Income
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('expenses') }}">
+                        💸 Expenses
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('goals') }}" class="active">
+                        🎯 Savings Goals
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('reports') }}">
+                        📈 Reports
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('logout') }}">
+                        🚪 Logout
+                    </a>
+                </li>
+            </ul>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Savings Goals 🎯</h1>
+                <p>Track your savings progress towards your financial goals</p>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Add Goal Button -->
+            <button id="addGoalBtn" class="btn btn-primary mb-20">+ Create New Goal</button>
+            
+            <!-- Goals Grid -->
+            <div class="cards-grid">
+                {% for goal in goals_list %}
+                <div class="goal-card">
+                    <div class="goal-header">
+                        <span class="goal-name">{{ goal[1] }}</span>
+                        <div>
+                            <a href="{{ url_for('delete_goal', goal_id=goal[0]) }}" 
+                               class="btn btn-sm btn-danger"
+                               onclick="return confirm('Delete this goal?')">🗑️</a>
+                        </div>
+                    </div>
+                    
+                    <div class="goal-amount">
+                        ₹{{ "{:,.2f}".format(goal[3]) }} / ₹{{ "{:,.2f}".format(goal[2]) }}
+                    </div>
+                    
+                    <div class="goal-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ (goal[3] / goal[2] * 100)|min(100) }}%"></div>
+                        </div>
+                        <div class="goal-percentage">{{ ((goal[3] / goal[2] * 100)|min(100))|round(1) }}%</div>
+                    </div>
+                    
+                    {% if goal[4] %}
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 10px;">
+                        Target Date: {{ goal[4] }}
+                    </p>
+                    {% endif %}
+                    
+                    <form method="POST" action="{{ url_for('update_goal', goal_id=goal[0]) }}" 
+                          style="margin-top: 15px;" class="d-flex">
+                        <input type="number" name="current_amount" class="form-control" 
+                               placeholder="Update amount" step="0.01" value="{{ goal[3] }}" required>
+                        <button type="submit" class="btn btn-sm btn-success">Update</button>
+                    </form>
+                </div>
+                {% else %}
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                    <p style="font-size: 1.2rem; color: var(--text-secondary);">No savings goals created yet</p>
+                    <p style="color: var(--text-secondary);">Create your first goal to start tracking!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </main>
+    </div>
+    
+    <!-- Add Goal Modal -->
+    <div id="goalModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Savings Goal</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <form id="goalForm" method="POST" action="{{ url_for('add_goal') }}">
+                <div class="form-group">
+                    <label for="name">Goal Name *</label>
+                    <input type="text" id="name" name="name" class="form-control" 
+                           placeholder="e.g., Buy Laptop, Emergency Fund" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="target_amount">Target Amount *</label>
+                        <input type="number" id="target_amount" name="target_amount" class="form-control" 
+                               placeholder="₹100,000" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="current_amount">Initial Amount</label>
+                        <input type="number" id="current_amount" name="current_amount" class="form-control" 
+                               placeholder="₹0" step="0.01" value="0">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="deadline">Target Date (Optional)</label>
+                    <input type="date" id="deadline" name="deadline" class="form-control">
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Goal</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
