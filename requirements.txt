@@ -6,3 +6,4 @@ pytesseract==0.3.10
 Pillow==10.4.0
 gunicorn==22.0.0
 opencv-python-headless==4.10.0.84
+scikit-learn==1.4.2
